@@ -1,0 +1,67 @@
+# Core Libraries
+numpy
+pandas
+nltk
+scipy
+scikit-learn
+matplotlib
+seaborn
+
+# Text Processing and NLP Libraries
+spacy
+gensim
+sentencepiece
+
+# Deep Learning Frameworks
+# tensorflow
+pytorch
+# keras
+
+# Transformers and Hugging Face
+transformers
+tokenizers
+datasets
+#sentence-transformers
+
+# Web Scraping and Crawling
+beautifulsoup4
+scrapy
+
+# Data Preprocessing
+scikit-learn
+pandas-profiling
+missingno
+
+# Feature Engineering
+#feature-engine
+tsfresh
+#numpy-groupies
+
+
+# Topic Modeling
+gensim
+
+# Word Embeddings
+word2vec
+# fasttext
+
+# Evaluation Metrics
+nltk
+scikit-learn
+pandas
+
+# Data Visualization
+matplotlib
+seaborn
+plotly
+bokeh
+
+# Interactive Jupyter Notebooks
+jupyter
+ipykernel
+
+
+# Miscellaneous
+tqdm
+ipython
+ipywidgets
