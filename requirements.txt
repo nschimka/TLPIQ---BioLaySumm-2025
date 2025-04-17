@@ -65,3 +65,4 @@ ipykernel
 tqdm
 ipython
 ipywidgets
+dspy
