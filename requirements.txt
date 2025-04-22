@@ -26,6 +26,7 @@ datasets
 # Evaluation
 evaluate
 bert_score
+py-readability-metrics
 
 # Web Scraping and Crawling
 beautifulsoup4
