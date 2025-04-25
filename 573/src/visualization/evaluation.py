@@ -3,9 +3,9 @@ import numpy as np
 import pdb
 from readability import Readability
 from lens import download_model, LENS
+import torch
 
 # reference: https://github.com/TGoldsack1/BioLaySumm2024-evaluation_scripts/blob/master/evaluate.py
-
 class Evaluator:
     def __init__(self, references, predictions, articles):
         self.references = references
@@ -109,24 +109,28 @@ class Evaluator:
         return [np.mean(fkcg_scores), np.mean(dcrs_scores), np.mean(cli_scores)]
     
     def add_lens_score_to_result(self):
-        breakpoint()
         lens = self.calculate_lens_score()
     
-    # make sure pytorch is installed with cuda or this will fail
-    # try checking if torch.cuda.is_available() -> true
     def calculate_lens_score(self) -> float:
+        # lot of GPUs aren't CUDA compatible:  https://stackoverflow.com/questions/60987997/why-torch-cuda-is-available-returns-false-even-after-installing-pytorch-with/61034368#61034368
+        DEVICES = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        #DEVICES = [0] if torch.cuda.is_available() else None
+        
         lens_path = download_model("davidheineman/lens")
 
         # Original LENS is a real-valued number. 
         # Rescaled version (rescale=True) rescales LENS between 0 and 100 for better interpretability. 
         # You can also use the original version using rescale=False
+
         lens = LENS(lens_path, rescale=True)
 
         complex = self.articles
         simple = self.predictions
         references = self.references
 
-        return np.mean(lens.score(complex, simple, references, batch_size=8, devices=[0]))
+        breakpoint()
+
+        return np.mean(lens.score(complex, simple, references, batch_size=8, devices=DEVICES))
                 
 
 

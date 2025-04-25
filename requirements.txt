@@ -1,6 +1,6 @@
 # Core Libraries
-numpy
-pandas
+numpy<=1.26.4 # for lens_metric
+pandas<2.0.0,>=1.5.0 # for lens_metric
 nltk
 scipy
 scikit-learn
@@ -27,14 +27,13 @@ datasets
 evaluate
 bert_score
 py-readability-metrics
-lens-metric
+lens-metric==0.2.0
 
 # Web Scraping and Crawling
 beautifulsoup4
 scrapy
 
 # Data Preprocessing
-scikit-learn
 pandas-profiling
 missingno
 
@@ -43,22 +42,10 @@ missingno
 tsfresh
 #numpy-groupies
 
-
-# Topic Modeling
-gensim
-
-# Word Embeddings
-word2vec
-# fasttext
-
 # Evaluation Metrics
 nltk
-scikit-learn
-pandas
 
 # Data Visualization
-matplotlib
-seaborn
 plotly
 bokeh
 
@@ -66,9 +53,7 @@ bokeh
 jupyter
 ipykernel
 
-
 # Miscellaneous
 tqdm
 ipython
 ipywidgets
-#dspy
