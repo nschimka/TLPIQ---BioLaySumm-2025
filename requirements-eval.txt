@@ -1,0 +1,10 @@
+# Some of these evaluations require older versions of files, so for simplicity let's separate the requirements
+evaluate
+bert_score
+py-readability-metrics
+lens-metric
+summac
+
+# general resources
+numpy
+nltk

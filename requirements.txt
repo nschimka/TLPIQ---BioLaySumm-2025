@@ -1,6 +1,6 @@
 # Core Libraries
-numpy<=1.26.4 # for lens_metric
-pandas<2.0.0,>=1.5.0 # for lens_metric
+numpy
+pandas
 nltk
 scipy
 scikit-learn
@@ -22,12 +22,6 @@ transformers
 tokenizers
 datasets
 #sentence-transformers
-
-# Evaluation
-evaluate
-bert_score
-py-readability-metrics
-lens-metric==0.2.0
 
 # Web Scraping and Crawling
 beautifulsoup4
