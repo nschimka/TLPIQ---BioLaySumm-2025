@@ -1,9 +1,11 @@
-# Some of these evaluations require older versions of files, so for simplicity let's separate the requirements
+# Some of these evaluations require older versions of libraries, so for simplicity let's separate the requirements
 evaluate
+rouge_score
 bert_score
 py-readability-metrics
 lens-metric
 summac
+pytorch==1.12.1 # for alignscore
 
 # general resources
 numpy

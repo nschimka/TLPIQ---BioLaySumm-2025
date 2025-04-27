@@ -5,9 +5,10 @@ from readability import Readability
 from lens import download_model, LENS
 import torch
 from summac.model_summac import SummaCConv
+from alignscore import AlignScore
 import nltk
 
-# reference: https://github.com/TGoldsack1/BioLaySumm2024-evaluation_scripts/blob/master/evaluate.py
+# reference: https://github.com/TGoldsack1/BioLaySumm2024-evaluation_scripts/tree/master
 class Evaluator:
     def __init__(self, references, predictions, articles):
         self.references = references
@@ -17,29 +18,32 @@ class Evaluator:
         self.results = {}
 
     def evaluate(self):
-        # relevance metrics
+        # Step one: relevance metrics
         print("calculating rouge...")
-        #self.add_rouge_score_to_result()
+        self.add_rouge_score_to_result()
 
         print("calculating bertscore...")
-        #self.add_bert_score_to_result()
+        self.add_bert_score_to_result()
 
         print("calculating meteor...")
-        #self.add_meteor_score_to_result()
+        self.add_meteor_score_to_result()
 
         print("calculating bleu...")
-        #self.add_bleu_score_to_result()
+        self.add_bleu_score_to_result()
 
-        # readability metrics
+        # Step 2: readability metrics
         print("calculating Flesch-Kincaid, Dale-Chall, Coleman-Liau Index readability...")
-        #self.add_most_readability_scores_to_result()
+        self.add_most_readability_scores_to_result()
 
         print("calculating LENS...")
         # LENS https://github.com/Yao-Dou/LENS
         #self.add_lens_score_to_result()
 
-        # factuality metrics
-        # TODO: alignscore https://github.com/yuh-zha/AlignScore
+        # Step 3: factuality metrics
+        print("calculating AlignScore...")
+        self.add_alignscore_to_result()
+
+        print("calculating SummaC...")
         self.add_summac_score_to_result()
 
     def add_rouge_score_to_result(self):
@@ -135,9 +139,15 @@ class Evaluator:
 
         return np.mean(lens.score(complex, simple, references, batch_size=8, devices=DEVICES))
     
+    def add_alignscore_to_result(self):
+        self.results["alignscore"] = self.calculate_alignscore()
+
+    def calculate_alignscore(self):
+        alignscorer = AlignScore(model='roberta-base', batch_size=16, device=self.device, ckpt_path='./models/AlignScore/AlignScore-base.ckpt', evaluation_mode='nli_sp')
+        return np.mean(alignscorer.score(contexts=self.references, claims=self.predictions))
+
     def add_summac_score_to_result(self):
-        summac = self.calculate_summac_score()
-        self.result["summac"] = summac
+        self.results["summac"] = self.calculate_summac_score()
      
     # wget needs to be installed. On mac: brew install wget
     def calculate_summac_score(self):
