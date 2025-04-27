@@ -14,37 +14,37 @@ class Evaluator:
         self.references = references
         self.predictions = predictions
         self.articles = articles
-        self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        self.device = "cuda:0" if torch.cuda.is_available() else "cpu" # lot of GPUs aren't CUDA compatible:  https://stackoverflow.com/questions/60987997/why-torch-cuda-is-available-returns-false-even-after-installing-pytorch-with/61034368#61034368
         self.results = {}
 
     def evaluate(self):
         # Step one: relevance metrics
         print("calculating rouge...")
-        self.add_rouge_score_to_result()
+        #self.add_rouge_score_to_result()
 
         print("calculating bertscore...")
-        self.add_bert_score_to_result()
+        #self.add_bert_score_to_result()
 
         print("calculating meteor...")
-        self.add_meteor_score_to_result()
+        #self.add_meteor_score_to_result()
 
         print("calculating bleu...")
-        self.add_bleu_score_to_result()
+        #self.add_bleu_score_to_result()
 
         # Step 2: readability metrics
         print("calculating Flesch-Kincaid, Dale-Chall, Coleman-Liau Index readability...")
-        self.add_most_readability_scores_to_result()
+        #self.add_most_readability_scores_to_result()
 
         print("calculating LENS...")
         # LENS https://github.com/Yao-Dou/LENS
-        #self.add_lens_score_to_result()
+        self.add_lens_score_to_result()
 
         # Step 3: factuality metrics
         print("calculating AlignScore...")
-        self.add_alignscore_to_result()
+        #self.add_alignscore_to_result()
 
         print("calculating SummaC...")
-        self.add_summac_score_to_result()
+        #self.add_summac_score_to_result()
 
     def add_rouge_score_to_result(self):
         rouge1, rouge2, rougeL = self.calculate_rouge_score()
@@ -62,8 +62,7 @@ class Evaluator:
         return [scores["rouge1"], scores["rouge2"], scores["rougeL"]]
     
     def add_bert_score_to_result(self):
-        bertscore = self.calculate_bert_score()
-        self.results["bertscore"] = bertscore
+        self.results["bertscore"] = self.calculate_bert_score()
 
     """
     BERTScore takes the pre-trained contextual embeddings built by BERT and uses them to match words in candidate and reference sentences by cosine similarity.
@@ -75,8 +74,7 @@ class Evaluator:
         return np.mean(scores["f1"])
     
     def add_meteor_score_to_result(self):
-        meteor = self.calculate_meteor_score()
-        self.results["meteor"] = meteor
+        self.results["meteor"] = self.calculate_meteor_score()
     
     """
     Matches generalized unigrams (matched on surface or stem forms and meanings) between reference and candidate translations.
@@ -87,8 +85,7 @@ class Evaluator:
         return meteor.compute(predictions=self.predictions, references=self.references)["meteor"]
     
     def add_bleu_score_to_result(self):
-        bleu = self.calculate_bleu_score()
-        self.results["bleu"] = bleu
+        self.results["bleu"] = self.calculate_bleu_score()
 
     """
     'the closer a machine translation is to a professional human translation, the better it is' - commonly used for machine translation
@@ -119,9 +116,6 @@ class Evaluator:
         lens = self.calculate_lens_score()
     
     def calculate_lens_score(self) -> float:
-        # lot of GPUs aren't CUDA compatible:  https://stackoverflow.com/questions/60987997/why-torch-cuda-is-available-returns-false-even-after-installing-pytorch-with/61034368#61034368
-        DEVICES = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        #DEVICES = [0] if torch.cuda.is_available() else None
         
         lens_path = download_model("davidheineman/lens")
 
@@ -137,7 +131,7 @@ class Evaluator:
 
         breakpoint()
 
-        return np.mean(lens.score(complex, simple, references, batch_size=8, devices=DEVICES))
+        return np.mean(lens.score(complex, simple, references, batch_size=8, devices=self.device))
     
     def add_alignscore_to_result(self):
         self.results["alignscore"] = self.calculate_alignscore()
