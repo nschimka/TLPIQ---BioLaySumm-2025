@@ -5,7 +5,7 @@ bert_score
 py-readability-metrics
 lens-metric
 summac
-torch
+torch # alignscore wants 1.13.1 but lens wants >= 2.0.1
 pytorch-lightning==2.0.9 # lens requires 2.0.9 but alignscore requires < 2
 
 # general resources
