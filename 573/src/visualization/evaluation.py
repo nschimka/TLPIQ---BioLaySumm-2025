@@ -5,7 +5,7 @@ from readability import Readability
 from lens import download_model, LENS
 import torch
 from summac.model_summac import SummaCConv
-#from alignscore import AlignScore
+from alignscore import AlignScore
 import nltk
 import datasets
 import argparse
