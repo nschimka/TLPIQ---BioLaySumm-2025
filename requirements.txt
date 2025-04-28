@@ -28,7 +28,6 @@ beautifulsoup4
 scrapy
 
 # Data Preprocessing
-scikit-learn
 pandas-profiling
 missingno
 
@@ -37,22 +36,10 @@ missingno
 tsfresh
 #numpy-groupies
 
-
-# Topic Modeling
-gensim
-
-# Word Embeddings
-word2vec
-# fasttext
-
 # Evaluation Metrics
 nltk
-scikit-learn
-pandas
 
 # Data Visualization
-matplotlib
-seaborn
 plotly
 bokeh
 
@@ -60,9 +47,7 @@ bokeh
 jupyter
 ipykernel
 
-
 # Miscellaneous
 tqdm
 ipython
 ipywidgets
-#dspy

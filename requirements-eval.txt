@@ -1,0 +1,14 @@
+# Some of these evaluations require older versions of libraries, so for simplicity let's separate the requirements
+evaluate
+rouge_score
+bert_score
+py-readability-metrics
+lens-metric
+summac
+torch
+pytorch-lightning==2.0.9 # lens requires 2.0.9 but alignscore requires < 2
+
+# general resources
+numpy==1.26.4
+nltk
+datasets
