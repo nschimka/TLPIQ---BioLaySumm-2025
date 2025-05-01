@@ -1,6 +1,8 @@
 import datasets
 
 elife = datasets.load_dataset("BioLaySumm/BioLaySumm2025-eLife")
+elife.save_to_disk("573/data/external/BioLaySumm2025-eLife")
+datasets.load_from_disk("573/data/external/BioLaySumm2025-eLife")
 """
 DatasetDict({
     train: Dataset({
