@@ -1,7 +1,7 @@
 import evaluate
 import numpy as np
 import pdb
-from readability import Readability
+import textstat
 from lens import download_model, LENS
 import torch
 from summac.model_summac import SummaCConv
@@ -10,6 +10,7 @@ import nltk
 import datasets
 import argparse
 import os
+import pandas as pd
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Run evaluations for generated summaries')
@@ -45,8 +46,8 @@ class Evaluator:
         self.add_most_readability_scores_to_result()
 
         # https://github.com/Yao-Dou/LENS
-        print("calculating LENS...")
-        self.add_lens_score_to_result()
+        #print("calculating LENS...")
+        #self.add_lens_score_to_result()
 
         # Step 3: factuality metrics
         # https://github.com/yuh-zha/AlignScore
@@ -63,6 +64,10 @@ class Evaluator:
         self.results["rouge2"] = rouge2
         self.results["rougeL"] = rougeL
 
+        print(f"rouge1 {rouge1}")
+        print(f"rouge2 {rouge2}")
+        print(f"rougel {rougeL}")
+
     """
     Evaluate quality of summary by comparing ngrams in reference text and output text. Emphasises recall over precision
     ROUGE-L calculates the longest common subsequence (LCS) between the reference and output summaries and is slightly more flexible
@@ -74,6 +79,7 @@ class Evaluator:
     
     def add_bert_score_to_result(self):
         self.results["bertscore"] = self.calculate_bert_score()
+        print(f"bertscore {self.results['bertscore']}")
 
     """
     BERTScore takes the pre-trained contextual embeddings built by BERT and uses them to match words in candidate and reference sentences by cosine similarity.
@@ -86,6 +92,7 @@ class Evaluator:
     
     def add_meteor_score_to_result(self):
         self.results["meteor"] = self.calculate_meteor_score()
+        print(f"meteor {self.results['meteor']}")
     
     """
     Matches generalized unigrams (matched on surface or stem forms and meanings) between reference and candidate translations.
@@ -97,6 +104,7 @@ class Evaluator:
     
     def add_bleu_score_to_result(self):
         self.results["bleu"] = self.calculate_bleu_score()
+        print(f"bleu {self.results['bleu']}")
 
     """
     "the closer a machine translation is to a professional human translation, the better it is" - commonly used for machine translation
@@ -112,19 +120,23 @@ class Evaluator:
         self.results["dale_chall"] = dcrs
         self.results["coleman_liau"] = cli
 
+        print(f"fkgl {fkgl}")
+        print(f"dcrs {dcrs}")
+        print(f"cli {cli}")
+
     def calculate_most_readability_scores(self) -> list[float]:
         fkcg_scores = []
         dcrs_scores = []
         cli_scores = []
         for prediction in self.predictions:
-            readability = Readability(prediction)
-            fkcg_scores.append(readability.flesch_kincaid().score)
-            dcrs_scores.append(readability.dale_chall().score)
-            cli_scores.append(readability.coleman_liau().score)
+            fkcg_scores.append(textstat.flesch_kincaid_grade(prediction))
+            cli_scores.append(textstat.coleman_liau_index(prediction))
+            dcrs_scores.append(textstat.dale_chall_readability_score(prediction))
         return [np.mean(fkcg_scores), np.mean(dcrs_scores), np.mean(cli_scores)]
     
     def add_lens_score_to_result(self):
         self.results["lens"] = self.calculate_lens_score()[0]
+        print(f"lens {self.results['lens']}")
     
     def calculate_lens_score(self) -> float:
         lens_path = download_model("davidheineman/lens")
@@ -145,6 +157,7 @@ class Evaluator:
     
     def add_alignscore_to_result(self):
         self.results["alignscore"] = self.calculate_alignscore()
+        print(f"alignscore {self.results['alignscore']}")
 
     def calculate_alignscore(self):
         alignscorer = AlignScore(model="roberta-base", batch_size=16, device=self.device, ckpt_path="./models/AlignScore/AlignScore-base.ckpt", evaluation_mode="nli_sp")
@@ -152,6 +165,7 @@ class Evaluator:
 
     def add_summac_score_to_result(self):
         self.results["summac"] = self.calculate_summac_score()
+        print(f"summac {self.results['summac']}")
      
     # wget needs to be installed
     def calculate_summac_score(self):
@@ -168,14 +182,16 @@ if __name__ == '__main__':
         gold_standards = ["In the kidney , structures known as nephrons are responsible for collecting metabolic waste . Nephrons are composed of a blood filter ( glomerulus ) followed by a series of specialized tubule regions , or segments , which recover solutes such as salts , and finally terminate with a collecting duct . The genetic mechanisms that establish nephron segmentation in mammals have been a challenge to study because of the kidney's complex organogenesis . The zebrafish embryonic kidney ( pronephros ) contains two nephrons , previously thought to consist of a glomerulus , short tubule , and long stretch of duct . In this study , we have redefined the anatomy of the zebrafish pronephros and shown that the duct is actually subdivided into distinct tubule segments that are analogous to the proximal and distal segments found in mammalian nephrons . Next , we used the zebrafish pronephros to investigate how nephron segmentation occurs . We found that retinoic acid ( RA ) induces proximal pronephros segments and represses distal segment fates . Further , we found that the caudal ( cdx ) transcription factors direct the anteroposterior location of pronephric progenitors by regulating the site of RA production . Taken together , these results reveal that a cdx-RA pathway plays a key role in both establishing where the pronephros forms along the embryonic axis as well as its segmentation pattern .", "Many species of bats in North America have been severely impacted by a fungal disease , white-nose syndrome , that has killed over 5 million bats since it was first identified in 2006 . The fungus is believed to have been introduced into a cave in New York where bats hibernate , and has now spread to 29 states and 4 Canadian provinces . The fungus is nearly identical from all sites where it has been isolated; however , we discovered that the fungus harbors a virus , and the virus varies enough to be able to use it to understand how the fungus has been spreading . This study used samples from infected bats throughout Pennsylvania and New York , and New Brunswick , Canada , as well a few isolates from other northeastern states . The evolution of the virus recapitulates the spread of the virus across these geographical areas , and should be useful for studying the further spread of the fungus ."]
         predictions = ["In the kidney , tiny units called nephrons remove waste from the blood . Each nephron has a filter ( called the glomerulus ) , followed by different tube sections that reabsorb useful substances like salts , and ends with a collecting duct . Studying how these sections form in mammals is difficult because kidney development is very complex . In zebrafish embryos , their simple kidneys ( called pronephros ) were once thought to just have a glomerulus , a short tube , and a long duct . But in this study , researchers found that this ' duct ' is actually made up of several distinct parts , similar to the sections seen in mammal kidneys . The researchers then looked into how these parts form . They discovered that a substance called retinoic acid ( RA ) helps form the front ( proximal ) parts of the kidney and blocks the formation of the back ( distal ) parts . They also found that certain genes called cdx control where the kidney forms along the body by influencing where RA is made . In summary , they showed that the cdx genes and RA work together to decide both where the kidney forms in the embryo and how its parts are organized .", "Many types of bats in North America have been badly affected by a disease called white-nose syndrome , caused by a fungus . Since it was first found in 2006 , the disease has killed over 5 million bats . It likely started in a New York cave where bats hibernate and has now spread to 29 U . S . states and 4 provinces in Canada . Even though the fungus looks almost the same everywhere it ' s found , researchers discovered that it carries a virus , and this virus changes slightly depending on the location . These small changes help scientists track how the fungus is spreading . In this study , scientists used samples from bats in Pennsylvania , New York , New Brunswick ( Canada ) , and a few other northeastern states . They found that the virus ’ s changes match the way the disease has spread across these areas . This means the virus can be a helpful tool for studying how the fungus continues to spread ."]
     else:
-        elife_articles = datasets.load_from_disk("573/data/external/BioLaySumm2025-eLife")
-        elife_gold_standards = []
-        elife_predictions = []
+        data = pd.read_csv("elife_predictions.csv")
+        elife_articles = data["input_text"].to_list()
+        elife_gold_standards = data["summary"].to_list()
+        elife_predictions = data["predicted_summary"].to_list()
 
-        plos_articles = datasets.load_from_disk("573/data/external/BioLaySumm/BioLaySumm2025-PLOS")
-        plos_gold_standards = []
-        plos_predictions = []
+        data = pd.read_csv("plos_predictions.csv")
+        plos_articles = data["input_text"].to_list()
+        plos_gold_standards = data["summary"].to_list()
+        plos_predictions = data["predicted_summary"].to_list()
 
-    evaluator = Evaluator(references=gold_standards, predictions=predictions, articles=articles)
+    evaluator = Evaluator(references=elife_gold_standards, predictions=elife_predictions, articles=elife_articles)
     evaluator.evaluate()
     print(evaluator.results)
