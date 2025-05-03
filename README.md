@@ -125,12 +125,11 @@ Usage:
 ```bash
 python src/2.generate.py \
     # Model paths
-    --model_path /models/biosum_flan_t5 \
-    --checkpoint checkpoint-3500 \
+    --model_path /ibrahimsharaf/biolaysumm573 \
     
     # Input data
-    --elife_path /data/elife_test.jsonl \
-    --plos_path /data/plos_test.jsonl \
+    --elife_path /data/elife_dev.jsonl \
+    --plos_path /data/plos_dev.jsonl \
     
     # Output settings
     --output_dir /data/predictions \
@@ -157,3 +156,55 @@ Save predictions to CSV files in the output directory.
 
 
 ## Evaluation
+
+### 3.evaluate.py
+This script evaluates generated summaries using multiple metrics across three dimensions:
+
+Relevance: ROUGE, BERTScore, METEOR, BLEU
+Readability: Flesch-Kincaid, Dale-Chall, Coleman-Liau
+Factuality: LENS, AlignScore, SummaC
+Usage:
+
+```bash
+python src/3.evaluate.py \
+    # Input/output paths
+    --predictions_dir /data/predictions/dev \
+    --output_dir /data/evaluation/dev \
+    
+    # Dataset options
+    --dataset both \
+    
+    # Column names in prediction files
+    --input_col input_text \
+    --reference_col summary \
+    --prediction_col predicted_summary \
+    
+    # Metrics selection
+    --relevance_metrics \
+    --readability_metrics \
+    --factuality_metrics \
+    
+    # Skip slow metrics if needed
+    --skip_lens \
+    
+    # Technical settings
+    --batch_size 16 \
+    --alignscore_path ./models/AlignScore/AlignScore-base.ckpt
+```
+
+For quick testing, you can run:
+
+```bash
+python src/3.evaluate.py --test_mode
+```
+
+There are some conflicting dependencies in the evaluation systems; for example, LENS and AlignScore want different versions of pytorch-lightning. You'll get some error messages when installing but they don't seem to break anything. Follow these steps to get everything set up:
+
+Make sure your system has the wget command available for the terminal; if you're on a Mac with Homebrew, you can `brew install wget`
+`pip install -r requirements-eval.txt` to install all dependencies.
+Run bash `get_models.sh` to clone and install AlignScore
+Note that while all the metrics can run on a CPU, the model-based ones (AlignScore, Summac, especially LENS) will want CUDA-enabled GPU to run efficiently (https://pytorch.org/get-started/locally/).
+
+
+
+
