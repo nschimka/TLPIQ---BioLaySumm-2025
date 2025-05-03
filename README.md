@@ -34,9 +34,15 @@ The preprocessing pipeline prepares scientific articles from the PLOS and eLife 
 This script extracts key sections from scientific articles (abstract, introduction, results, discussion, methods), removes citations, simplifies technical terminology, and formats the text with appropriate section markers. It handles token limitations by intelligently truncating less important sections while preserving complete sentences.
 
 Usage:
+
 ```bash
-python src/0.preprocess.py --output_dir /data --dataset both --max_tokens 1024 --batch_size 32 --output_format jsonl
-```
+python src/0.preprocess.py \
+    --output_dir /data \
+    --dataset both \
+    --max_tokens 1024 \
+    --batch_size 32 \
+    --output_format jsonl
+ ```
 
 Key parameters:
 - `--output_dir`: Directory to save processed data
