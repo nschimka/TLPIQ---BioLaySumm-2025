@@ -1,4 +1,134 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
-573/src/visualization/summac_conv_vitc_sent_perc_e.bin
-573/src/visualization/models
-573/data/external
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.env/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Pyre type checker
+.pyre/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# PyCharm
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# Local configuration files
+*.env
+.env.*
+*.secret
+secrets/
+config.yaml
+config.yml
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+*.db
+
+# Docker
+*.pid
+*.pid.lock
+
+# ML/DL experiment artifacts
+runs/
+logs/
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+*.h5
+*.tflite
+*.onnx
+*.pb
+*.joblib
+*.pkl
+*.npz
+*.npy
+lightning_logs/
+mlruns/
+
+# HuggingFace
+*.cache/
+cache/
+datasets/
+hub/
+tokenizer_config.json
+special_tokens_map.json
+
+# FastAPI / Streamlit / Flask uploads
+uploads/
+media/
+static/
+
+# Others
+.DS_Store
+Thumbs.db
