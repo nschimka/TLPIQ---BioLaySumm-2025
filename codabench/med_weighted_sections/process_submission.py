@@ -4,7 +4,7 @@ from nltk import TreebankWordDetokenizer
 
 #write script mods to calculate summary token length and write to new files
 def process(input_file, output_file, wordcount_file):
-    detokenizer=TreebankWordDetokenizer()
+    #detokenizer=TreebankWordDetokenizer()  #detokenizing text only
 
     with open(input_file, 'r', encoding='utf-8-sig') as inpFile:
         file_reader=csv.reader(inpFile, delimiter=',')
@@ -23,19 +23,21 @@ def process(input_file, output_file, wordcount_file):
                             wordOut.write("Warning: No period detected. Likely Truncated. \n")
                             truncations+=1
                             i=-1
-                            #delete last sentence if not a period
+                            #handling truncation
                             while item[5][i]!='.':
                                 i += -1
-                            summary=detokenizer.detokenize(item[5][:i+1].split())
+                            #commented code for detokenizing text only 
+                            '''summary=detokenizer.detokenize(item[5][:i+1].split()) 
                             summary=summary.replace(' .', '.')
-                            outFile.write(summary+ '\n')
-                            #outFile.write(item[5][:i+1]+'\n')
+                            outFile.write(summary+ '\n') '''
+                            outFile.write(item[5][:i+1]+'\n')   #write tokenized text to output file
 
                         else:
-                            summary=detokenizer.detokenize(item[5].split())
+                            #commented code for detokenizing text only
+                            '''summary=detokenizer.detokenize(item[5].split())
                             summary=summary.replace(' .', '.')
-                            outFile.write(summary+ '\n')
-                            #outFile.write(item[5] + '\n')
+                            outFile.write(summary+ '\n')'''
+                            outFile.write(item[5] + '\n')  #write tokenized text to output file
                         k+=1
                 wordOut.write("Total number of truncations: " +str(truncations))
             wordOut.close()
@@ -43,14 +45,15 @@ def process(input_file, output_file, wordcount_file):
     inpFile.close()
 
 #checks for truncation in tokenized text only
-'''def truncation_check(input_file, f_name):
-    with open(input_file, 'r') as inpFile:
+def truncation_check(input_file):
+    with open(input_file, 'r', encoding="utf-8") as inpFile:
         k=1
         for item in inpFile:
-            if item[-1] != '.': #print warning to terminal if still truncated
-                print("{} Line {} - Warning: No period detected. Still Truncated. \n".format(f_name, k))
+            if item[-2] != '.': #print warning to terminal if still truncated
+                print(item[-2])
+                print("Line {} - Warning: No period detected. Still Truncated.".format(k))
             k+=1
-    inpFile.close()'''
+    inpFile.close()
             
                 
 def main():
@@ -69,11 +72,9 @@ def main():
      process(plos_input, plos_out, plos_words)
      process(elife_input, elife_out, elife_words)
 
-     #check for truncation in tokenized text
-     #plos="plos"
-     #elife="elife"
-     #truncation_check(plos_out, plos)
-     #truncation_check(elife_out, elife)
+     #check for any remaining truncation in tokenized text
+     truncation_check(plos_out)
+     truncation_check(elife_out)
        
 
 if __name__ == "__main__":
