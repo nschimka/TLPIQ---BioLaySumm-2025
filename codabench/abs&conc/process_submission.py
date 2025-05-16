@@ -18,7 +18,7 @@ def process(input_file, output_file, wordcount_file):
                         continue
                     else:       #write only summaries to output file
                         #print(item[5])
-                        wordOut.write(str(k) + " Count: " + str(len(item[5])) +'\n')
+                        wordOut.write(str(k) + " Count: " + str(len(item[5].split())) +'\n')
                         if item[5][-1] != '.':
                             wordOut.write("Warning: No period detected. Likely Truncated. \n")
                             truncations+=1
