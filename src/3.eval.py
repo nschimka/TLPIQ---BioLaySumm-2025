@@ -1,130 +1,274 @@
-import evaluate
+#!/usr/bin/env python3
+"""
+BioLaySumm Evaluation Script
+
+This script evaluates the quality of generated lay summaries using multiple metrics:
+1. Relevance: ROUGE, BERTScore, METEOR, BLEU
+2. Readability: Flesch-Kincaid, Dale-Chall, Coleman-Liau
+3. Factuality: LENS, AlignScore, SummaC
+
+Usage:
+  python src/3.evaluate.py --predictions_dir /data/predictions --output_dir /data/evaluation
+"""
+
+import os
+import json
+import argparse
 import numpy as np
-import pdb
+import pandas as pd
+from typing import List, Dict, Any, Tuple, Optional
+import logging
+import torch
+import nltk
+import evaluate
+
+# Import specialized metrics
 import textstat
 from lens import download_model, LENS
-import torch
 from summac.model_summac import SummaCConv
 from alignscore import AlignScore
-import nltk
-import datasets
-import argparse
-import os
-import pandas as pd
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Run evaluations for generated summaries')
-    parser.add_argument('--test_mode', action="store_true", help='Run evaluations on a very small subset of data')
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description='Evaluate generated summaries with multiple metrics')
+
+    # Input/output paths
+    parser.add_argument('--predictions_dir', type=str, default='./predictions',
+                        help='Directory containing prediction CSV files')
+    parser.add_argument('--output_dir', type=str, default='./evaluation',
+                        help='Directory to save evaluation results')
+
+    # Dataset options
+    parser.add_argument('--dataset', type=str, choices=['plos', 'elife', 'both'], default='both',
+                        help='Which dataset to evaluate')
+    parser.add_argument('--split', type=str, default='test',
+                        help='Split name used in prediction filenames (e.g., "test" for plos_test_predictions.csv)')
+
+    # Column names
+    parser.add_argument('--input_col', type=str, default='input_text',
+                        help='Column name for source articles')
+    parser.add_argument('--reference_col', type=str, default='summary',
+                        help='Column name for reference summaries')
+    parser.add_argument('--prediction_col', type=str, default='predicted_summary',
+                        help='Column name for generated summaries')
+
+    # Metrics selection
+    parser.add_argument('--relevance_metrics', action='store_true', default=True,
+                        help='Calculate relevance metrics (ROUGE, BERTScore, METEOR, BLEU)')
+    parser.add_argument('--readability_metrics', action='store_true', default=True,
+                        help='Calculate readability metrics (FK, DC, CLI)')
+    parser.add_argument('--factuality_metrics', action='store_true', default=True,
+                        help='Calculate factuality metrics (LENS, AlignScore, SummaC)')
+    parser.add_argument('--skip_lens', action='store_true',
+                        help='Skip LENS evaluation (can be slow)')
+    parser.add_argument('--skip_alignscore', action='store_true',
+                        help='Skip AlignScore evaluation (can be slow)')
+    parser.add_argument('--skip_summac', action='store_true',
+                        help='Skip SummaC evaluation (can be slow)')
+
+    # Sample size
+    parser.add_argument('--max_samples', type=int, default=None,
+                        help='Max number of samples to evaluate (useful for testing)')
+    parser.add_argument('--test_mode', action='store_true',
+                        help='Run quick test with minimal samples')
+
+    # Technical settings
+    parser.add_argument('--device', type=str, default=None,
+                        help='Device to use for neural metrics (auto if None)')
+    parser.add_argument('--batch_size', type=int, default=16,
+                        help='Batch size for neural metrics')
+    parser.add_argument('--random_seed', type=int, default=42,
+                        help='Random seed for reproducibility')
+
+    # AlignScore specifics
+    parser.add_argument('--alignscore_path', type=str, default='./models/AlignScore/AlignScore-base.ckpt',
+                        help='Path to AlignScore checkpoint')
+
     return parser.parse_args()
 
 
-# reference: https://github.com/TGoldsack1/BioLaySumm2024-evaluation_scripts/tree/master
 class Evaluator:
-    def __init__(self, references, predictions, articles):
+    """
+    Evaluator class for calculating multiple metrics on generated summaries.
+
+    Metrics include:
+    - Relevance: ROUGE, BERTScore, METEOR, BLEU
+    - Readability: Flesch-Kincaid, Dale-Chall, Coleman-Liau
+    - Factuality: LENS, AlignScore, SummaC
+    """
+
+    def __init__(self,
+                 references: List[str],
+                 predictions: List[str],
+                 articles: List[str],
+                 device: Optional[str] = None,
+                 batch_size: int = 16,
+                 alignscore_path: str = './models/AlignScore/AlignScore-base.ckpt'):
+        """
+        Initialize evaluator with references, predictions, and source articles.
+
+        Args:
+            references: List of reference summaries
+            predictions: List of generated summaries
+            articles: List of source articles
+            device: Device to use for neural models
+            batch_size: Batch size for processing
+            alignscore_path: Path to AlignScore checkpoint
+        """
         self.references = references
         self.predictions = predictions
         self.articles = articles
-        self.device = "cuda:0" if torch.cuda.is_available() else "cpu" # lot of GPUs aren"t CUDA compatible:  https://stackoverflow.com/questions/60987997/why-torch-cuda-is-available-returns-false-even-after-installing-pytorch-with/61034368#61034368
+        self.batch_size = batch_size
+        self.alignscore_path = alignscore_path
+
+        # Set device
+        if device:
+            self.device = device
+        else:
+            self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+        logger.info(f"Using device: {self.device}")
         self.results = {}
 
-    def evaluate(self):
+    def evaluate(self, relevance=True, readability=True, factuality=True,
+                 skip_lens=False, skip_alignscore=False, skip_summac=False):
+        """
+        Evaluate generated summaries using multiple metrics.
+
+        Args:
+            relevance: Whether to calculate relevance metrics
+            readability: Whether to calculate readability metrics
+            factuality: Whether to calculate factuality metrics
+            skip_lens: Whether to skip LENS evaluation
+            skip_alignscore: Whether to skip AlignScore evaluation
+            skip_summac: Whether to skip SummaC evaluation
+
+        Returns:
+            Dictionary with calculated metrics
+        """
         # Step one: relevance metrics
-        print("calculating rouge...")
-        self.add_rouge_score_to_result()
+        if relevance:
+            logger.info("Calculating relevance metrics...")
 
-        print("calculating bertscore...")
-        self.add_bert_score_to_result()
+            logger.info("Calculating ROUGE scores...")
+            self.add_rouge_score_to_result()
 
-        print("calculating meteor...")
-        self.add_meteor_score_to_result()
+            logger.info("Calculating BERTScore...")
+            self.add_bert_score_to_result()
 
-        print("calculating bleu...")
-        self.add_bleu_score_to_result()
+            logger.info("Calculating METEOR...")
+            self.add_meteor_score_to_result()
+
+            logger.info("Calculating BLEU...")
+            self.add_bleu_score_to_result()
 
         # Step 2: readability metrics
-        print("calculating Flesch-Kincaid, Dale-Chall, Coleman-Liau Index readability...")
-        self.add_most_readability_scores_to_result()
-
-        # https://github.com/Yao-Dou/LENS
-        #print("calculating LENS...")
-        #self.add_lens_score_to_result()
+        if readability:
+            logger.info("Calculating readability metrics...")
+            self.add_most_readability_scores_to_result()
 
         # Step 3: factuality metrics
-        # https://github.com/yuh-zha/AlignScore
-        print("calculating AlignScore...")
-        self.add_alignscore_to_result()
+        if factuality:
+            if not skip_lens:
+                logger.info("Calculating LENS score...")
+                self.add_lens_score_to_result()
 
-        # https://github.com/tingofurro/summac
-        print("calculating SummaC...")
-        self.add_summac_score_to_result()
+            if not skip_alignscore:
+                logger.info("Calculating AlignScore...")
+                self.add_alignscore_to_result()
+
+            if not skip_summac:
+                logger.info("Calculating SummaC score...")
+                self.add_summac_score_to_result()
+
+        return self.results
 
     def add_rouge_score_to_result(self):
+        """
+        Calculate and store ROUGE scores.
+        ROUGE compares n-grams in reference and prediction, emphasizing recall over precision.
+        """
         rouge1, rouge2, rougeL = self.calculate_rouge_score()
         self.results["rouge1"] = rouge1
         self.results["rouge2"] = rouge2
         self.results["rougeL"] = rougeL
 
-        print(f"rouge1 {rouge1}")
-        print(f"rouge2 {rouge2}")
-        print(f"rougel {rougeL}")
+        logger.info(f"ROUGE-1: {rouge1:.4f}")
+        logger.info(f"ROUGE-2: {rouge2:.4f}")
+        logger.info(f"ROUGE-L: {rougeL:.4f}")
 
-    """
-    Evaluate quality of summary by comparing ngrams in reference text and output text. Emphasises recall over precision
-    ROUGE-L calculates the longest common subsequence (LCS) between the reference and output summaries and is slightly more flexible
-    """
-    def calculate_rouge_score(self) -> list[float]:
+    def calculate_rouge_score(self) -> List[float]:
+        """Calculate ROUGE scores."""
         rouge = evaluate.load("rouge")
         scores = rouge.compute(predictions=self.predictions, references=self.references)
         return [scores["rouge1"], scores["rouge2"], scores["rougeL"]]
-    
-    def add_bert_score_to_result(self):
-        self.results["bertscore"] = self.calculate_bert_score()
-        print(f"bertscore {self.results['bertscore']}")
 
-    """
-    BERTScore takes the pre-trained contextual embeddings built by BERT and uses them to match words in candidate and reference sentences by cosine similarity.
-    In other words, it calculates the similarity between the two. It correlates with human judgment on sentence-level and system-level evaluation.
-    """
+    def add_bert_score_to_result(self):
+        """
+        Calculate and store BERTScore.
+        BERTScore uses contextual embeddings to match words by cosine similarity.
+        """
+        self.results["bertscore"] = self.calculate_bert_score()
+        logger.info(f"BERTScore: {self.results['bertscore']:.4f}")
+
     def calculate_bert_score(self) -> float:
+        """Calculate BERTScore."""
         bertscore = evaluate.load("bertscore")
         scores = bertscore.compute(predictions=self.predictions, references=self.references, lang="en")
         return np.mean(scores["f1"])
-    
+
     def add_meteor_score_to_result(self):
+        """
+        Calculate and store METEOR score.
+        METEOR matches unigrams between reference and candidate, balancing recall and precision.
+        """
         self.results["meteor"] = self.calculate_meteor_score()
-        print(f"meteor {self.results['meteor']}")
-    
-    """
-    Matches generalized unigrams (matched on surface or stem forms and meanings) between reference and candidate translations.
-    Correlates well with human judgments and balances recall and precision.
-    """
+        logger.info(f"METEOR: {self.results['meteor']:.4f}")
+
     def calculate_meteor_score(self) -> float:
+        """Calculate METEOR score."""
         meteor = evaluate.load("meteor")
         return meteor.compute(predictions=self.predictions, references=self.references)["meteor"]
-    
-    def add_bleu_score_to_result(self):
-        self.results["bleu"] = self.calculate_bleu_score()
-        print(f"bleu {self.results['bleu']}")
 
-    """
-    "the closer a machine translation is to a professional human translation, the better it is" - commonly used for machine translation
-    average per-sentence scores of shared n-grams over the whole corpus. Emphasizes precision over recall
-    """
+    def add_bleu_score_to_result(self):
+        """
+        Calculate and store BLEU score.
+        BLEU averages per-sentence scores of shared n-grams, emphasizing precision over recall.
+        """
+        self.results["bleu"] = self.calculate_bleu_score()
+        logger.info(f"BLEU: {self.results['bleu']:.4f}")
+
     def calculate_bleu_score(self) -> float:
+        """Calculate BLEU score."""
         bleu = evaluate.load("bleu")
         return bleu.compute(predictions=self.predictions, references=self.references)["bleu"]
-    
+
     def add_most_readability_scores_to_result(self):
+        """Calculate and store readability scores."""
         fkgl, dcrs, cli = self.calculate_most_readability_scores()
-        self.results["flesh_kincaid"] = fkgl
+        self.results["flesch_kincaid"] = fkgl
         self.results["dale_chall"] = dcrs
         self.results["coleman_liau"] = cli
 
-        print(f"fkgl {fkgl}")
-        print(f"dcrs {dcrs}")
-        print(f"cli {cli}")
+        logger.info(f"Flesch-Kincaid Grade Level: {fkgl:.2f}")
+        logger.info(f"Dale-Chall Readability Score: {dcrs:.2f}")
+        logger.info(f"Coleman-Liau Index: {cli:.2f}")
 
-    def calculate_most_readability_scores(self) -> list[float]:
+    def calculate_most_readability_scores(self) -> List[float]:
+        """
+        Calculate readability scores:
+        - Flesch-Kincaid Grade Level: estimates US grade level needed to understand the text
+        - Dale-Chall: based on word familiarity
+        - Coleman-Liau: based on characters per word and words per sentence
+        """
         fkcg_scores = []
         dcrs_scores = []
         cli_scores = []
@@ -133,65 +277,286 @@ class Evaluator:
             cli_scores.append(textstat.coleman_liau_index(prediction))
             dcrs_scores.append(textstat.dale_chall_readability_score(prediction))
         return [np.mean(fkcg_scores), np.mean(dcrs_scores), np.mean(cli_scores)]
-    
+
     def add_lens_score_to_result(self):
-        self.results["lens"] = self.calculate_lens_score()[0]
-        print(f"lens {self.results['lens']}")
-    
-    def calculate_lens_score(self) -> float:
+        """
+        Calculate and store LENS score.
+        LENS evaluates the quality of simplification by comparing source, simplified, and reference texts.
+        """
+        lens_score, _ = self.calculate_lens_score()
+        self.results["lens"] = lens_score
+        logger.info(f"LENS score: {lens_score:.2f}")
+
+    def calculate_lens_score(self) -> Tuple[float, float]:
+        """
+        Calculate LENS score.
+        Returns the rescaled score (0-100) for better interpretability.
+        """
         lens_path = download_model("davidheineman/lens")
-
-        # Original LENS is a real-valued number. 
-        # Rescaled version (rescale=True) rescales LENS between 0 and 100 for better interpretability. 
-        # You can also use the original version using rescale=False
-
         lens = LENS(lens_path, rescale=True)
 
-        complex = self.articles
-        simple = self.predictions
+        complex_texts = self.articles
+        simple_texts = self.predictions
         references = self.references
 
         device = [0] if self.device == "cuda:0" else None
 
-        return lens.score(complex, simple, references, batch_size=8, devices=device)
-    
-    def add_alignscore_to_result(self):
-        self.results["alignscore"] = self.calculate_alignscore()
-        print(f"alignscore {self.results['alignscore']}")
+        return lens.score(complex_texts, simple_texts, references,
+                          batch_size=self.batch_size, devices=device)
 
-    def calculate_alignscore(self):
-        alignscorer = AlignScore(model="roberta-base", batch_size=16, device=self.device, ckpt_path="./models/AlignScore/AlignScore-base.ckpt", evaluation_mode="nli_sp")
-        return np.mean(alignscorer.score(contexts=self.references, claims=self.predictions))
+    def add_alignscore_to_result(self):
+        """
+        Calculate and store AlignScore.
+        AlignScore measures factual consistency between generated and reference summaries.
+        """
+        self.results["alignscore"] = self.calculate_alignscore()
+        logger.info(f"AlignScore: {self.results['alignscore']:.4f}")
+
+    def calculate_alignscore(self) -> float:
+        """Calculate AlignScore."""
+        alignscorer = AlignScore(
+            model="roberta-base",
+            batch_size=self.batch_size,
+            device=self.device,
+            ckpt_path=self.alignscore_path,
+            evaluation_mode="nli_sp"
+        )
+        return np.mean(alignscorer.score(contexts=self.articles, claims=self.predictions))
 
     def add_summac_score_to_result(self):
+        """
+        Calculate and store SummaC score.
+        SummaC measures the factual consistency of summaries using NLI models.
+        """
         self.results["summac"] = self.calculate_summac_score()
-        print(f"summac {self.results['summac']}")
-     
-    # wget needs to be installed
-    def calculate_summac_score(self):
-        model_conv = SummaCConv(models=["vitc"], bins="percentile", granularity="sentence", nli_labels="e", device=self.device, start_file="default", agg="mean")
-        return np.mean(model_conv.score(self.references, self.predictions)["scores"])
+        logger.info(f"SummaC score: {self.results['summac']:.4f}")
 
-if __name__ == '__main__':
-    # if this fails with an SSL error on Mac, bash "/Applications/Python 3.10/Install Certificates.command"
-    nltk.download("punkt_tab")
+    def calculate_summac_score(self) -> float:
+        """Calculate SummaC score."""
+        model_conv = SummaCConv(
+            models=["vitc"],
+            bins="percentile",
+            granularity="sentence",
+            nli_labels="e",
+            device=self.device,
+            start_file="default",
+            agg="mean"
+        )
+        return np.mean(model_conv.score(self.articles, self.predictions)["scores"])
 
-    args = parse_args()
+
+def load_test_data() -> Tuple[List[str], List[str], List[str]]:
+    """
+    Load minimal test data for quick testing.
+
+    Returns:
+        Tuple of (articles, references, predictions)
+    """
+    articles = [
+        ("Kidney function depends on the nephron, which comprises a blood filter, a tubule that is "
+         "subdivided into functionally distinct segments, and a collecting duct. How these regions "
+         "arise during development is poorly understood. The zebrafish pronephros consists of two "
+         "linear nephrons that develop from the intermediate mesoderm along the length of the trunk. "
+         "Here we show that, contrary to current dogma, these nephrons possess multiple proximal and "
+         "distal tubule domains that resemble the organization of the mammalian nephron."),
+
+        ("White-nose syndrome is one of the most lethal wildlife diseases, killing over 5 million "
+         "North American bats since it was first reported in 2006. The causal agent of the disease is "
+         "a psychrophilic filamentous fungus, Pseudogymnoascus destructans. The fungus is widely "
+         "distributed in North America and Europe and has recently been found in some parts of Asia, "
+         "but interestingly, no mass mortality is observed in European or Asian bats.")
+    ]
+
+    references = [
+        ("In the kidney, structures known as nephrons are responsible for collecting metabolic waste. "
+         "Nephrons are composed of a blood filter (glomerulus) followed by a series of specialized "
+         "tubule regions, or segments, which recover solutes such as salts, and finally terminate "
+         "with a collecting duct. The genetic mechanisms that establish nephron segmentation in "
+         "mammals have been a challenge to study because of the kidney's complex organogenesis."),
+
+        ("Many species of bats in North America have been severely impacted by a fungal disease, "
+         "white-nose syndrome, that has killed over 5 million bats since it was first identified in "
+         "2006. The fungus is believed to have been introduced into a cave in New York where bats "
+         "hibernate, and has now spread to 29 states and 4 Canadian provinces.")
+    ]
+
+    predictions = [
+        ("In the kidney, tiny units called nephrons remove waste from the blood. Each nephron has a "
+         "filter (called the glomerulus), followed by different tube sections that reabsorb useful "
+         "substances like salts, and ends with a collecting duct. Studying how these sections form "
+         "in mammals is difficult because kidney development is very complex."),
+
+        ("Many types of bats in North America have been badly affected by a disease called white-nose "
+         "syndrome, caused by a fungus. Since it was first found in 2006, the disease has killed over "
+         "5 million bats. It likely started in a New York cave where bats hibernate and has now "
+         "spread to 29 U.S. states and 4 provinces in Canada.")
+    ]
+
+    return articles, references, predictions
+
+
+def load_data_from_csv(file_path: str, input_col: str, reference_col: str,
+                       prediction_col: str, max_samples: Optional[int] = None) -> Tuple[
+    List[str], List[str], List[str]]:
+    """
+    Load data from CSV file.
+
+    Args:
+        file_path: Path to CSV file
+        input_col: Column name for source articles
+        reference_col: Column name for reference summaries
+        prediction_col: Column name for generated summaries
+        max_samples: Maximum number of samples to load
+
+    Returns:
+        Tuple of (articles, references, predictions)
+    """
+    try:
+        df = pd.read_csv(file_path)
+        logger.info(f"Loaded {len(df)} samples from {file_path}")
+
+        # Verify columns exist
+        for col in [input_col, reference_col, prediction_col]:
+            if col not in df.columns:
+                raise ValueError(f"Column '{col}' not found in {file_path}")
+
+        # Sample if needed
+        if max_samples and max_samples < len(df):
+            df = df.sample(max_samples, random_state=42)
+            logger.info(f"Sampled {max_samples} examples for evaluation")
+
+        articles = df[input_col].tolist()
+        references = df[reference_col].tolist()
+        predictions = df[prediction_col].tolist()
+
+        return articles, references, predictions
+
+    except Exception as e:
+        logger.error(f"Error loading data from {file_path}: {e}")
+        return [], [], []
+
+
+def evaluate_dataset(args: argparse.Namespace, dataset_name: str) -> Dict[str, Any]:
+    """
+    Evaluate a single dataset.
+
+    Args:
+        args: Command line arguments
+        dataset_name: Name of the dataset ('plos' or 'elife')
+
+    Returns:
+        Dictionary with evaluation results
+    """
+    logger.info(f"\n{'=' * 20} Evaluating {dataset_name.upper()} dataset {'=' * 20}\n")
+
+    # Determine prediction file path
+    prediction_file = os.path.join(args.predictions_dir, f"{dataset_name}_predictions.csv")
+    if not os.path.exists(prediction_file):
+        logger.error(f"Prediction file not found: {prediction_file}")
+        return {}
+
+    # Load data
+    articles, references, predictions = load_data_from_csv(
+        prediction_file,
+        args.input_col,
+        args.reference_col,
+        args.prediction_col,
+        args.max_samples
+    )
+
+    if not articles:
+        logger.error(f"No data loaded for {dataset_name}")
+        return {}
+
+    # Initialize evaluator
+    evaluator = Evaluator(
+        references=references,
+        predictions=predictions,
+        articles=articles,
+        device=args.device,
+        batch_size=args.batch_size,
+        alignscore_path=args.alignscore_path
+    )
+
+    # Run evaluation
+    results = evaluator.evaluate(
+        relevance=args.relevance_metrics,
+        readability=args.readability_metrics,
+        factuality=args.factuality_metrics,
+        skip_lens=args.skip_lens,
+        skip_alignscore=args.skip_alignscore,
+        skip_summac=args.skip_summac
+    )
+
+    # Add dataset name to results
+    results['dataset'] = dataset_name
+
+    # Print summary
+    logger.info(f"\n{'-' * 20} Summary for {dataset_name.upper()} {'-' * 20}")
+    for metric, value in results.items():
+        if metric != 'dataset':
+            logger.info(f"{metric}: {value:.4f}")
+
+    return results
+
+
+def main(args):
+    """Main function."""
+    # Set up NLTK resources
+    nltk.download("punkt", quiet=True)
+
+    # Create output directory
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    all_results = []
+
     if args.test_mode:
-        articles = ["Kidney function depends on the nephron , which comprises a blood filter , a tubule that is subdivided into functionally distinct segments , and a collecting duct . How these regions arise during development is poorly understood . The zebrafish pronephros consists of two linear nephrons that develop from the intermediate mesoderm along the length of the trunk . Here we show that , contrary to current dogma , these nephrons possess multiple proximal and distal tubule domains that resemble the organization of the mammalian nephron . We examined whether pronephric segmentation is mediated by retinoic acid ( RA ) and the caudal ( cdx ) transcription factors , which are known regulators of segmental identity during development . Inhibition of RA signaling resulted in a loss of the proximal segments and an expansion of the distal segments , while exogenous RA treatment induced proximal segment fates at the expense of distal fates . Loss of cdx function caused abrogation of distal segments , a posterior shift in the position of the pronephros , and alterations in the expression boundaries of raldh2 and cyp26a1 , which encode enzymes that synthesize and degrade RA , respectively.", "White-nose syndrome is one of the most lethal wildlife diseases , killing over 5 million North American bats since it was first reported in 2006 . The causal agent of the disease is a psychrophilic filamentous fungus , Pseudogymnoascus destructans . The fungus is widely distributed in North America and Europe and has recently been found in some parts of Asia , but interestingly , no mass mortality is observed in European or Asian bats . Here we report a novel double-stranded RNA virus found in North American isolates of the fungus and show that the virus can be used as a tool to study the epidemiology of White-nose syndrome . The virus , termed Pseudogymnoascus destructans partitivirus-pa , contains 2 genomic segments , dsRNA 1 and dsRNA 2 of 1 . 76 kbp and 1 . 59 kbp respectively , each possessing a single open reading frame , and forms isometric particles approximately 30 nm in diameter , characteristic of the genus Gammapartitivirus in the family Partitiviridae . Phylogenetic analysis revealed that the virus is closely related to Penicillium stoloniferum virus S . We were able to cure P ."]
-        gold_standards = ["In the kidney , structures known as nephrons are responsible for collecting metabolic waste . Nephrons are composed of a blood filter ( glomerulus ) followed by a series of specialized tubule regions , or segments , which recover solutes such as salts , and finally terminate with a collecting duct . The genetic mechanisms that establish nephron segmentation in mammals have been a challenge to study because of the kidney's complex organogenesis . The zebrafish embryonic kidney ( pronephros ) contains two nephrons , previously thought to consist of a glomerulus , short tubule , and long stretch of duct . In this study , we have redefined the anatomy of the zebrafish pronephros and shown that the duct is actually subdivided into distinct tubule segments that are analogous to the proximal and distal segments found in mammalian nephrons . Next , we used the zebrafish pronephros to investigate how nephron segmentation occurs . We found that retinoic acid ( RA ) induces proximal pronephros segments and represses distal segment fates . Further , we found that the caudal ( cdx ) transcription factors direct the anteroposterior location of pronephric progenitors by regulating the site of RA production . Taken together , these results reveal that a cdx-RA pathway plays a key role in both establishing where the pronephros forms along the embryonic axis as well as its segmentation pattern .", "Many species of bats in North America have been severely impacted by a fungal disease , white-nose syndrome , that has killed over 5 million bats since it was first identified in 2006 . The fungus is believed to have been introduced into a cave in New York where bats hibernate , and has now spread to 29 states and 4 Canadian provinces . The fungus is nearly identical from all sites where it has been isolated; however , we discovered that the fungus harbors a virus , and the virus varies enough to be able to use it to understand how the fungus has been spreading . This study used samples from infected bats throughout Pennsylvania and New York , and New Brunswick , Canada , as well a few isolates from other northeastern states . The evolution of the virus recapitulates the spread of the virus across these geographical areas , and should be useful for studying the further spread of the fungus ."]
-        predictions = ["In the kidney , tiny units called nephrons remove waste from the blood . Each nephron has a filter ( called the glomerulus ) , followed by different tube sections that reabsorb useful substances like salts , and ends with a collecting duct . Studying how these sections form in mammals is difficult because kidney development is very complex . In zebrafish embryos , their simple kidneys ( called pronephros ) were once thought to just have a glomerulus , a short tube , and a long duct . But in this study , researchers found that this ' duct ' is actually made up of several distinct parts , similar to the sections seen in mammal kidneys . The researchers then looked into how these parts form . They discovered that a substance called retinoic acid ( RA ) helps form the front ( proximal ) parts of the kidney and blocks the formation of the back ( distal ) parts . They also found that certain genes called cdx control where the kidney forms along the body by influencing where RA is made . In summary , they showed that the cdx genes and RA work together to decide both where the kidney forms in the embryo and how its parts are organized .", "Many types of bats in North America have been badly affected by a disease called white-nose syndrome , caused by a fungus . Since it was first found in 2006 , the disease has killed over 5 million bats . It likely started in a New York cave where bats hibernate and has now spread to 29 U . S . states and 4 provinces in Canada . Even though the fungus looks almost the same everywhere it ' s found , researchers discovered that it carries a virus , and this virus changes slightly depending on the location . These small changes help scientists track how the fungus is spreading . In this study , scientists used samples from bats in Pennsylvania , New York , New Brunswick ( Canada ) , and a few other northeastern states . They found that the virus ’ s changes match the way the disease has spread across these areas . This means the virus can be a helpful tool for studying how the fungus continues to spread ."]
+        logger.info("Running in test mode with minimal data")
+        articles, references, predictions = load_test_data()
+
+        evaluator = Evaluator(
+            references=references,
+            predictions=predictions,
+            articles=articles,
+            device=args.device,
+            batch_size=args.batch_size,
+            alignscore_path=args.alignscore_path
+        )
+
+        results = evaluator.evaluate(
+            relevance=args.relevance_metrics,
+            readability=args.readability_metrics,
+            factuality=args.factuality_metrics,
+            skip_lens=args.skip_lens,
+            skip_alignscore=args.skip_alignscore,
+            skip_summac=args.skip_summac
+        )
+
+        results['dataset'] = 'test'
+        all_results.append(results)
+
     else:
-        data = pd.read_csv("elife_predictions.csv")
-        elife_articles = data["input_text"].to_list()
-        elife_gold_standards = data["summary"].to_list()
-        elife_predictions = data["predicted_summary"].to_list()
+        # Evaluate datasets as requested
+        if args.dataset in ['plos', 'both']:
+            plos_results = evaluate_dataset(args, 'plos')
+            if plos_results:
+                all_results.append(plos_results)
 
-        data = pd.read_csv("plos_predictions.csv")
-        plos_articles = data["input_text"].to_list()
-        plos_gold_standards = data["summary"].to_list()
-        plos_predictions = data["predicted_summary"].to_list()
+        if args.dataset in ['elife', 'both']:
+            elife_results = evaluate_dataset(args, 'elife')
+            if elife_results:
+                all_results.append(elife_results)
 
-    evaluator = Evaluator(references=elife_gold_standards, predictions=elife_predictions, articles=elife_articles)
-    evaluator.evaluate()
-    print(evaluator.results)
+    # Save results to JSON
+    if all_results:
+        output_file = os.path.join(args.output_dir, "evaluation_results.json")
+        with open(output_file, 'w') as f:
+            json.dump(all_results, f, indent=4)
+        logger.info(f"Results saved to {output_file}")
+
+    logger.info("\nEvaluation complete!")
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args)

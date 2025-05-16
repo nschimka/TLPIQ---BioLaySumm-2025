@@ -113,18 +113,17 @@ def preprocess_article(article_data, max_tokens=1024, section_weights=None):
     - token_count: Number of tokens in the final string.
     """
     def remove_citations(text):
-        text = re.sub(r'\[\d+(,\s*\d+)*\]', '', text)
-        text = re.sub(r'\(([^()]*\d{4}[^()]*)\)', '', text)
+        #text = re.sub(r'\[\d+(,\s*\d+)*\]', '', text)
+        #text = re.sub(r'\(([^()]*\d{4}[^()]*)\)', '', text)
+        # now removing anything in parentheses
+        text = re.sub(r"\(\s*.*?\s*\)|\[\s*.*?\s*\]", "", text)
         return text
 
     def clean_text(text):
-        text = re.sub(r'\s+([.,;:])', r'\1', text)
         text = text.replace('\n', '<<NEWLINE>>')
+        text = re.sub(r'\s+([.,;:])', r'\1', text)
         text = re.sub(r'\s+', ' ', text)
         text = text.replace('<<NEWLINE>>', '\n')
-        text = text.replace("\u2018", "'").replace("\u2019", "'")
-        text = text.replace("\u201c", '"').replace("\u201d", '"')
-        text = text.replace("\u2013", '-').replace("\u2014", '-')
         return text
 
     dataset_name = article_data.get('source', '').lower()
@@ -156,15 +155,14 @@ def preprocess_article(article_data, max_tokens=1024, section_weights=None):
 
     # Clean article and extract metadata
     raw_text = clean_text(article_data.get('article', ''))
+    raw_text = remove_citations(raw_text)
     title = clean_text(article_data.get('title', ''))
+    title = remove_citations(title)
 
     # Extract and clean sections
     # Extract and clean sections using section headings
     # sections is a default dict with actual headings, 'and' conjoined
     sections = extract_sections_from_article(raw_text, article_data.get("section_headings", []))
-
-    for sec in sections.keys():
-        sections[sec] = remove_citations(sections[sec])
 
     # Compute token allocations per section
     available_tokens = max_tokens - len(title.split()) - 10  # Reserve some for metadata
@@ -179,7 +177,7 @@ def preprocess_article(article_data, max_tokens=1024, section_weights=None):
         # Distribute remaining tokens proportionally
         remaining = available_tokens - total_allocated
         for section in section_weights:
-            if len(word_tokenize(sections[section])) > int((section_weights.get(sec, 0) / 100) * available_tokens):
+            if len(word_tokenize(sections[section])) > int((section_weights.get(section, 0) / 100) * available_tokens):
                 if section_weights[section] > 0:
                     section_tokens[section] += int(remaining * section_weights[section] / 100)
 
@@ -371,9 +369,6 @@ def save_processed_data(processed_data, output_path, format="jsonl"):
 
 def run_preprocessing():
 
-    # Set up the T5 tokenizer to check actual token counts
-    tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
-
     print("Loading datasets from Hugging Face...")
     plos = load_dataset("BioLaySumm/BioLaySumm2025-PLOS")
     elife = load_dataset("BioLaySumm/BioLaySumm2025-eLife")
@@ -392,8 +387,8 @@ def run_preprocessing():
     elife_samples = process_dataset(elife['train'], 'elife', sample_size=sample_size)
 
     # Save samples
-    save_processed_data(plos_samples, "data/plos_samples.jsonl")
-    save_processed_data(elife_samples, "data/elife_samples.jsonl")
+    save_processed_data(plos_samples, "processed_data/plos_samples.jsonl")
+    save_processed_data(elife_samples, "processed_data/elife_samples.jsonl")
 
     # Ask to continue with full dataset
     process_full = input("\nDo you want to process the full datasets? (y/n): ")

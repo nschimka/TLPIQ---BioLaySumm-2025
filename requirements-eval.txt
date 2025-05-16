@@ -2,7 +2,7 @@
 evaluate
 rouge_score
 bert_score
-py-readability-metrics
+textstat
 lens-metric
 summac
 torch # alignscore wants 1.13.1 but lens wants >= 2.0.1
@@ -11,4 +11,6 @@ pytorch-lightning==2.0.9 # lens requires 2.0.9 but alignscore requires < 2
 # general resources
 numpy==1.26.4
 nltk
-datasets
+pandas
+pathlib
+
