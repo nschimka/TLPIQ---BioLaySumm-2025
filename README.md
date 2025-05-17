@@ -1,4 +1,4 @@
-# BioLaySumm 2025 1.1 [The Lay People in Question]
+# BioLaySumm 2025 1.1 [TLPIQ]
 
 https://biolaysumm.org/
 
@@ -211,6 +211,12 @@ Make sure your system has the wget command available for the terminal; if you're
 Run bash `get_models.sh` to clone and install AlignScore
 Note that while all the metrics can run on a CPU, the model-based ones (AlignScore, Summac, especially LENS) will want CUDA-enabled GPU to run efficiently (https://pytorch.org/get-started/locally/).
 
+
+## PostProcessing
+
+### 4. process_submission.py
+
+This script takes the model .csv file outputs and converts each csv to BioLaySumm submission format.
 
 
 
