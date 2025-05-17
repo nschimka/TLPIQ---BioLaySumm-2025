@@ -30,7 +30,8 @@ def process(input_file, output_file, wordcount_file):
                             '''summary=detokenizer.detokenize(item[5][:i+1].split()) 
                             summary=summary.replace(' .', '.')
                             outFile.write(summary+ '\n') '''
-                            outFile.write(item[5][:i+1]+'\n')   #write tokenized text to output file
+                            #outFile.write(item[5][:i+1]+'\n')   #write NON-TRUNCATED tokenized text to output file
+                            outFile.write(item[5] + '\n')  #backup write TRUNCATED tokenized text to output file
 
                         else:
                             #commented code for detokenizing text only
@@ -44,8 +45,8 @@ def process(input_file, output_file, wordcount_file):
         outFile.close()
     inpFile.close()
 
-#checks for truncation in tokenized text only
-def truncation_check(input_file):
+#double checks for truncation in tokenized text, when truncation active above
+'''def truncation_check(input_file):
     with open(input_file, 'r', encoding="utf-8") as inpFile:
         k=1
         for item in inpFile:
@@ -53,7 +54,7 @@ def truncation_check(input_file):
                 print(item[-2])
                 print("Line {} - Warning: No period detected. Still Truncated.".format(k))
             k+=1
-    inpFile.close()
+    inpFile.close()'''
             
                 
 def main():
@@ -73,8 +74,8 @@ def main():
      process(elife_input, elife_out, elife_words)
 
      #check for any remaining truncation in tokenized text
-     truncation_check(plos_out)
-     truncation_check(elife_out)
+     '''truncation_check(plos_out)
+     truncation_check(elife_out)'''
        
 
 if __name__ == "__main__":
