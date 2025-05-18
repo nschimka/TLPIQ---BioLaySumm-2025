@@ -214,7 +214,7 @@ Note that while all the metrics can run on a CPU, the model-based ones (AlignSco
 
 ## PostProcessing
 
-### 4. process_submission.py
+### 4. biolaysumm_process.py
 
 This script takes the model .csv file outputs and converts each csv to BioLaySumm submission format.
 
