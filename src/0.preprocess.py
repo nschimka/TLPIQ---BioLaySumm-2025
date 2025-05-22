@@ -133,18 +133,18 @@ def preprocess_article(article_data, max_tokens=1024, section_weights=None):
         if dataset_name == "plos":
             section_weights = {
                 'abstract': 50,
-                'introduction': 20,
-                'results': 7,
-                'discussion': 18,
-                'methods': 5
+                'introduction': 0,
+                'results': 0,
+                'discussion': 50,
+                'methods': 0
             }
         else:  # eLife
             section_weights = {
-                'abstract': 40,
-                'introduction': 32,
-                'results': 10,
-                'discussion': 13,
-                'methods': 5
+                'abstract': 50,
+                'introduction': 0,
+                'results': 0,
+                'discussion': 50,
+                'methods': 0
             }
 
     # Normalize weights if they don't sum to 100
