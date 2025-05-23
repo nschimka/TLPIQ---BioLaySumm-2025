@@ -102,7 +102,7 @@ python src/1.train.py \
 
 ## Inference & Generation
 
-### 2.generate.py
+### 2.pred.py
 This script loads a finetuned model and generates lay summaries for the test datasets.
 Usage:
 ```bash
