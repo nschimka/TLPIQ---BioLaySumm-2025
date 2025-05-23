@@ -62,7 +62,7 @@ This script fine-tunes a pretrained Flan-T5 model on the BioLaySumm dataset (PLO
 #### Usage
 
 ```bash
-python src/finetune.py \
+python src/1.train.py \
   # Data paths & dataset selection
   --drive_path /data/preprocessed \
   --dataset_source both \            # both | plos | elife \
@@ -106,7 +106,7 @@ python src/finetune.py \
 This script loads a finetuned model and generates lay summaries for the test datasets.
 Usage:
 ```bash
-python src/2.generate.py \
+python src/2.pred.py \
     # Model paths
     --model_path /ibrahimsharaf/biolaysumm573 \
     
@@ -140,7 +140,7 @@ Save predictions to CSV files in the output directory.
 
 ## Evaluation
 
-### 3.evaluate.py
+### 3.eval.py
 This script evaluates generated summaries using multiple metrics across three dimensions:
 
 Relevance: ROUGE, BERTScore, METEOR, BLEU
