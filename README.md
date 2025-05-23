@@ -55,73 +55,50 @@ The script produces structured files containing preprocessed articles with their
 
 ## Finetuning (Optional)
 
-### 1.finetune.py
+### 1.train.py
 
-This script finetunes a pretrained language model (default: FLAN-T5) on the preprocessed BioLaySumm dataset to generate lay summaries of scientific articles.
+This script fine-tunes a pretrained Flan-T5 model on the BioLaySumm dataset (PLOS and/or eLife) to generate lay summaries of scientific articles, with optional Weights & Biases logging.
 
-Usage:
+#### Usage
+
 ```bash
-python src/1.finetune.py \
-    # Data paths
-    --drive_path /data \
-    --output_dir /models/biosum_flan_t5 \
-    
-    # Model configuration
-    --model_name google/flan-t5-base \
-    --prompt_template "create a lay summary of this scientific research for a general audience who has no background in biology: " \
-    
-    # Sequence length settings
-    --max_input_length 1024 \
-    --max_output_length 128 \
-    
-    # Training hyperparameters
-    --batch_size 8 \
-    --learning_rate 2e-5 \
-    --weight_decay 0.01 \
-    --epochs 3 \
-    --warmup_ratio 0.1 \
-    --grad_accumulation 2 \
-    --seed 42 \
-    --fp16 \
-    
-    # Evaluation and checkpoint settings
-    --eval_strategy epoch \
-    --logging_steps 100 \
-    --save_total_limit 3 \
-    --patience 3 \
-    
-    # Optional Weights & Biases integration
-    --use_wandb \
-    --wandb_project biosum-finetuning \
-    --wandb_run_name flan-t5-biosum
+python src/finetune.py \
+  # Data paths & dataset selection
+  --drive_path /data/preprocessed \
+  --dataset_source both \            # both | plos | elife \
+  --output_dir /models/biosum_flant5 \
+  
+  # Model & prompt
+  --model_name google/flan-t5-base \
+  --prompt_template "Create a lay summary of this scientific research for a general audience who has no background in biology: " \
+  
+  # Sequence length
+  --max_input_length 1024 \
+  --max_output_length 300 \         # max_new_tokens for output
+  
+  # Training hyperparameters
+  --batch_size 64 \
+  --eval_batch_size 16 \
+  --learning_rate 3e-5 \
+  --weight_decay 0.01 \
+  --warmup_ratio 0.1 \
+  --grad_accumulation 1 \
+  --epochs 6 \
+  --seed 42 \
+  --fp16 \
+  
+  # Evaluation & checkpointing
+  --eval_strategy steps \
+  --eval_steps 2000 \
+  --logging_steps 500 \
+  --save_total_limit 3 \
+  --patience 3 \
+  
+  # W&B (optional)
+  --use_wandb \
+  --wandb_project biomedical-summarization \
+  --wandb_run_name flant5-bio-combined
 ```
-
-Key parameters:
-- `--drive_path`: Path to directory containing preprocessed JSONL files from Step 0
-- `--output_dir`: Directory to save the model checkpoints and outputs
-- `--model_name`: Base model to finetune (default: google/flan-t5-base)
-- `--prompt_template`: Text prompt to prepend to input articles
-- `--batch_size`: Training batch size
-- `--learning_rate`: Learning rate for training
-- `--epochs`: Number of training epochs
-- `--fp16`: Enable mixed precision training (faster on compatible GPUs)
-- `--use_wandb`: Enable Weights & Biases logging (optional)
-
-The script will:
-1. Load preprocessed data from both PLOS and eLife datasets
-2. Tokenize inputs with the specified prompt template
-3. Train the model with early stopping based on ROUGE scores
-4. Save model checkpoints to the specified output directory
-5. Evaluate on test data and generate example summaries
-
-Output files:
-- Model checkpoint files in the specified output directory
-- `prompt_template.txt`: Record of the prompt used during training
-- `test_results.json`: Evaluation metrics on the test set
-- `example_generations.json`: Sample generated summaries from test cases
-
-The finetuned model can then be used for inference on new articles or for evaluation.
-
 
 ## Inference & Generation
 
