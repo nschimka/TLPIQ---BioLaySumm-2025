@@ -1,0 +1,270 @@
+1 Count: 87
+Warning: No period detected. Likely Truncated. 
+2 Count: 96
+Warning: No period detected. Likely Truncated. 
+3 Count: 82
+Warning: No period detected. Likely Truncated. 
+4 Count: 98
+Warning: No period detected. Likely Truncated. 
+5 Count: 95
+Warning: No period detected. Likely Truncated. 
+6 Count: 98
+Warning: No period detected. Likely Truncated. 
+7 Count: 109
+Warning: No period detected. Likely Truncated. 
+8 Count: 95
+Warning: No period detected. Likely Truncated. 
+9 Count: 78
+Warning: No period detected. Likely Truncated. 
+10 Count: 98
+11 Count: 104
+Warning: No period detected. Likely Truncated. 
+12 Count: 91
+Warning: No period detected. Likely Truncated. 
+13 Count: 101
+Warning: No period detected. Likely Truncated. 
+14 Count: 93
+Warning: No period detected. Likely Truncated. 
+15 Count: 79
+Warning: No period detected. Likely Truncated. 
+16 Count: 76
+Warning: No period detected. Likely Truncated. 
+17 Count: 82
+Warning: No period detected. Likely Truncated. 
+18 Count: 89
+Warning: No period detected. Likely Truncated. 
+19 Count: 87
+Warning: No period detected. Likely Truncated. 
+20 Count: 94
+Warning: No period detected. Likely Truncated. 
+21 Count: 82
+Warning: No period detected. Likely Truncated. 
+22 Count: 101
+Warning: No period detected. Likely Truncated. 
+23 Count: 85
+24 Count: 88
+Warning: No period detected. Likely Truncated. 
+25 Count: 96
+Warning: No period detected. Likely Truncated. 
+26 Count: 95
+Warning: No period detected. Likely Truncated. 
+27 Count: 70
+Warning: No period detected. Likely Truncated. 
+28 Count: 70
+Warning: No period detected. Likely Truncated. 
+29 Count: 91
+Warning: No period detected. Likely Truncated. 
+30 Count: 100
+31 Count: 91
+Warning: No period detected. Likely Truncated. 
+32 Count: 94
+Warning: No period detected. Likely Truncated. 
+33 Count: 84
+Warning: No period detected. Likely Truncated. 
+34 Count: 99
+Warning: No period detected. Likely Truncated. 
+35 Count: 87
+Warning: No period detected. Likely Truncated. 
+36 Count: 80
+Warning: No period detected. Likely Truncated. 
+37 Count: 92
+Warning: No period detected. Likely Truncated. 
+38 Count: 75
+Warning: No period detected. Likely Truncated. 
+39 Count: 83
+Warning: No period detected. Likely Truncated. 
+40 Count: 88
+Warning: No period detected. Likely Truncated. 
+41 Count: 90
+Warning: No period detected. Likely Truncated. 
+42 Count: 90
+Warning: No period detected. Likely Truncated. 
+43 Count: 77
+44 Count: 86
+Warning: No period detected. Likely Truncated. 
+45 Count: 88
+Warning: No period detected. Likely Truncated. 
+46 Count: 97
+Warning: No period detected. Likely Truncated. 
+47 Count: 99
+Warning: No period detected. Likely Truncated. 
+48 Count: 79
+Warning: No period detected. Likely Truncated. 
+49 Count: 85
+Warning: No period detected. Likely Truncated. 
+50 Count: 71
+Warning: No period detected. Likely Truncated. 
+51 Count: 66
+Warning: No period detected. Likely Truncated. 
+52 Count: 85
+Warning: No period detected. Likely Truncated. 
+53 Count: 92
+Warning: No period detected. Likely Truncated. 
+54 Count: 76
+Warning: No period detected. Likely Truncated. 
+55 Count: 89
+Warning: No period detected. Likely Truncated. 
+56 Count: 72
+Warning: No period detected. Likely Truncated. 
+57 Count: 105
+Warning: No period detected. Likely Truncated. 
+58 Count: 83
+59 Count: 92
+Warning: No period detected. Likely Truncated. 
+60 Count: 97
+61 Count: 96
+Warning: No period detected. Likely Truncated. 
+62 Count: 77
+Warning: No period detected. Likely Truncated. 
+63 Count: 100
+Warning: No period detected. Likely Truncated. 
+64 Count: 101
+Warning: No period detected. Likely Truncated. 
+65 Count: 85
+Warning: No period detected. Likely Truncated. 
+66 Count: 79
+Warning: No period detected. Likely Truncated. 
+67 Count: 78
+Warning: No period detected. Likely Truncated. 
+68 Count: 105
+Warning: No period detected. Likely Truncated. 
+69 Count: 102
+70 Count: 99
+Warning: No period detected. Likely Truncated. 
+71 Count: 86
+72 Count: 81
+Warning: No period detected. Likely Truncated. 
+73 Count: 82
+Warning: No period detected. Likely Truncated. 
+74 Count: 95
+Warning: No period detected. Likely Truncated. 
+75 Count: 92
+Warning: No period detected. Likely Truncated. 
+76 Count: 98
+Warning: No period detected. Likely Truncated. 
+77 Count: 95
+78 Count: 76
+79 Count: 106
+Warning: No period detected. Likely Truncated. 
+80 Count: 89
+Warning: No period detected. Likely Truncated. 
+81 Count: 90
+Warning: No period detected. Likely Truncated. 
+82 Count: 104
+Warning: No period detected. Likely Truncated. 
+83 Count: 98
+Warning: No period detected. Likely Truncated. 
+84 Count: 72
+Warning: No period detected. Likely Truncated. 
+85 Count: 82
+Warning: No period detected. Likely Truncated. 
+86 Count: 95
+Warning: No period detected. Likely Truncated. 
+87 Count: 103
+Warning: No period detected. Likely Truncated. 
+88 Count: 87
+Warning: No period detected. Likely Truncated. 
+89 Count: 93
+Warning: No period detected. Likely Truncated. 
+90 Count: 79
+Warning: No period detected. Likely Truncated. 
+91 Count: 101
+Warning: No period detected. Likely Truncated. 
+92 Count: 105
+Warning: No period detected. Likely Truncated. 
+93 Count: 89
+Warning: No period detected. Likely Truncated. 
+94 Count: 94
+95 Count: 88
+Warning: No period detected. Likely Truncated. 
+96 Count: 90
+Warning: No period detected. Likely Truncated. 
+97 Count: 84
+Warning: No period detected. Likely Truncated. 
+98 Count: 88
+Warning: No period detected. Likely Truncated. 
+99 Count: 85
+Warning: No period detected. Likely Truncated. 
+100 Count: 100
+Warning: No period detected. Likely Truncated. 
+101 Count: 93
+Warning: No period detected. Likely Truncated. 
+102 Count: 88
+Warning: No period detected. Likely Truncated. 
+103 Count: 83
+Warning: No period detected. Likely Truncated. 
+104 Count: 75
+Warning: No period detected. Likely Truncated. 
+105 Count: 98
+Warning: No period detected. Likely Truncated. 
+106 Count: 75
+Warning: No period detected. Likely Truncated. 
+107 Count: 83
+Warning: No period detected. Likely Truncated. 
+108 Count: 104
+Warning: No period detected. Likely Truncated. 
+109 Count: 76
+Warning: No period detected. Likely Truncated. 
+110 Count: 102
+Warning: No period detected. Likely Truncated. 
+111 Count: 95
+Warning: No period detected. Likely Truncated. 
+112 Count: 68
+Warning: No period detected. Likely Truncated. 
+113 Count: 86
+Warning: No period detected. Likely Truncated. 
+114 Count: 83
+Warning: No period detected. Likely Truncated. 
+115 Count: 81
+Warning: No period detected. Likely Truncated. 
+116 Count: 84
+Warning: No period detected. Likely Truncated. 
+117 Count: 88
+Warning: No period detected. Likely Truncated. 
+118 Count: 93
+Warning: No period detected. Likely Truncated. 
+119 Count: 76
+Warning: No period detected. Likely Truncated. 
+120 Count: 91
+Warning: No period detected. Likely Truncated. 
+121 Count: 80
+Warning: No period detected. Likely Truncated. 
+122 Count: 101
+Warning: No period detected. Likely Truncated. 
+123 Count: 84
+Warning: No period detected. Likely Truncated. 
+124 Count: 80
+125 Count: 95
+126 Count: 83
+127 Count: 83
+Warning: No period detected. Likely Truncated. 
+128 Count: 101
+Warning: No period detected. Likely Truncated. 
+129 Count: 94
+Warning: No period detected. Likely Truncated. 
+130 Count: 85
+Warning: No period detected. Likely Truncated. 
+131 Count: 100
+Warning: No period detected. Likely Truncated. 
+132 Count: 100
+Warning: No period detected. Likely Truncated. 
+133 Count: 93
+Warning: No period detected. Likely Truncated. 
+134 Count: 75
+135 Count: 93
+Warning: No period detected. Likely Truncated. 
+136 Count: 77
+Warning: No period detected. Likely Truncated. 
+137 Count: 83
+Warning: No period detected. Likely Truncated. 
+138 Count: 90
+Warning: No period detected. Likely Truncated. 
+139 Count: 94
+Warning: No period detected. Likely Truncated. 
+140 Count: 96
+Warning: No period detected. Likely Truncated. 
+141 Count: 82
+Warning: No period detected. Likely Truncated. 
+142 Count: 84
+Warning: No period detected. Likely Truncated. 
+Total number of truncations: 127
